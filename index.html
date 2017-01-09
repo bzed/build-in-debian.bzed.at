@@ -7,17 +7,16 @@
   <link rel="stylesheet" type="text/css" href="media/style.css?v=2" media="screen">
 
   <title>
-    travis.debian.net &mdash; Easily build and test your Debian packaging on travis-ci.org &amp; GitHub
+    build-in-debian.bzed.at &mdash; Easily build and test your sources in Debian on travis-ci.org &amp; GitHub.
   </title>
 </head>
 
 <body>
-
-<a id="github" href="https://github.com/lamby/travis.debian.net"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/567c3a48d796e2fc06ea80409cc9dd82bf714434/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_darkblue_121621.png"></a>
+<a id="github" href="https://github.com/bzed/build-in-debian.bzed.at"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/82b228a3648bf44fc1163ef44c62fcc60081495e/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_red_aa0000.png"></a>
 
 <header>
   <div class="container">
-    <h1>travis.debian.net</h1>
+    <h1>build-in-debian.bzed.at</h1>
     <h2>Easily build and test your Debian packaging on travis-ci.org &amp; GitHub</h2>
   </div>
 </header>
@@ -29,24 +28,19 @@
     </h3>
 
     <p>
-      <tt>travis.debian.net</tt> is a hosted service for projects that host
-      their Debian packaging on <a href="https://github.com/">GitHub</a> to use
+        <tt>build-in-debian.bzed.at</tt> is based on the code of the awesome
+        <tt>travis.debian.net</tt>. Thanks to @lamby for it.
+    </p>
+    <p>
+      <tt>build-in-debian.bzed.at</tt> is a hosted service to be able to build
+      and test your sources in a clean Debian environment, using
       the <a href="https://travis-ci.org">Travis CI</a> continuous integration
-      platform to test builds on every update. Amongst many other advantages,
+      platform.
+      Amongst many other advantages,
       this helps catch issues as early as possible and avoids having to run
-      long package builds on one's own computers.
-    </p>
-
-    <p>
-      Whilst possible without <tt>travis.debian.net</tt>, using this service
-      not only avoids unwieldy duplication of configuration, it works around
-      backwards-compatibility issues in supporting tools in older Debian
-      releases.
-    </p>
-
-    <p>
-      <tt>travis.debian.net</tt> additionally supports running
-      <em>autopkgtest</em> tests and disabling network access during builds.
+      long package builds on one's own computers. Also it might make your
+      Debian package maintainer happy to know that you take care of build failures
+      in Debian.
     </p>
 
     <h3 id="quick-setup">
@@ -64,16 +58,15 @@
         <img src="media/images/settings.png">
       </li>
       <li>
-        Add <tt>.travis.yml</tt> to your
-        <a href="https://honk.sigxcpu.org/piki/projects/git-buildpackage/">git-buildpackage</a>
-        branches:
-
-        <pre>$ wget -O.travis.yml <a href="http://travis.debian.net/travis.yml">http://travis.debian.net/travis.yml</a>
+        Add <tt>.travis.yml</tt> to your source code:
+        <pre>$ wget -O.travis.yml <a href="http://build-in-debian.bzed.at/travis.yml">http://build-in-debian.bzed.at/travis.yml</a>
 $ git add .travis.yml
-$ git commit -m "Add .travis.yml from http://travis.debian.net."</pre>
-
-        For "3.0 (quilt)" packages:
-        <pre>$ echo 'extend-diff-ignore = "^\.travis\.yml$"' &gt;&gt; <br>      debian/source/options</pre>
+$ git commit -m "Add .travis.yml from http://build-in-debian.bzed.at."</pre>
+      </li>
+      <li>
+          Configure your build-dependencies and build scripts, either in<pre>.travis.yml</pre> or using the Travis CI web interface.
+          You'll have to set the <pre>TRAVIS_DEBIAN_BUILD_DEPENDENCIES</pre> and <pre>TRAVIS_DEBIAN_BUILD_COMMAND</pre> environment
+          variables.
       </li>
       <li>
         <img src="media/images/log.png">
@@ -85,26 +78,14 @@ $ git commit -m "Add .travis.yml from http://travis.debian.net."</pre>
     </h3>
 
     <p>
-      At it's core <tt>travis.debian.net</tt> is a hosted POSIX shell script
+      At it's core <tt>build-in-debian.bzed.at</tt> is a hosted POSIX shell script
       that is executed within the Travis CI test environment.
     </p>
 
-    <p>
-      First, <tt>travis.debian.net</tt> detects which release of Debian
-      the branch is targeting based on the current branch name. The
-      <em>experimental</em> suite and all varieties of backports are
-      intelligently detected.
     </p>
-
-    </p>
-      A throwaway <a href="https://www.docker.com/">Docker</a> image is then
-      created containing all the required build-dependencies. The package is
+      A throwaway <a href="https://www.docker.com/">Docker</a> image is
+      created containing all the required build-dependencies. Your source is
       then built in this isolated environment with no access to the internet.
-    </p>
-
-    <p>
-      <a href="https://lintian.debian.org/">Lintian</a> is run on the result
-      and the binary packages are saved to the parent directory.
     </p>
 
     <h3 id="configuration">
@@ -122,19 +103,25 @@ $ git commit -m "Add .travis.yml from http://travis.debian.net."</pre>
 
     <dl>
       <dt>
-        DEB_BUILD_OPTIONS
+        TRAVIS_DEBIAN_BUILD_DEPENDENCIES
       </dt>
       <dd>
-        This variable is passed without modification to the build process and
-        modifies the build process
-        <a href="https://www.debian.org/doc/debian-policy/ch-source.html#s-debianrules-options">as outlined in Debian Policy</a>.
+        Space seperated list of packages necessary to build your source code.
+        Defaults to <pre>build-essential</pre>.
+      </dd>
+      <dt>
+        TRAVIS_DEBIAN_BUILD_COMMAND
+      </dt>
+      <dd>
+        Command which builds your source code. The return code decides about the
+        success of the build.
       </dd>
       <dt>
         TRAVIS_DEBIAN_DISTRIBUTION
       </dt>
       <dd>
         Which distribution of Debian the package should be built in. By
-        default, this is automatically detected from the branch name.
+        default, unstable will be used..
       </dd>
       <dt>
         TRAVIS_DEBIAN_BACKPORTS
@@ -200,27 +187,9 @@ $ git commit -m "Add .travis.yml from http://travis.debian.net."</pre>
         TRAVIS_DEBIAN_NETWORK_ENABLED
       </dt>
       <dd>
-        By default, the network is disabled during the package build process.
+        By default, the network is disabled during the build process.
         If your build really needs internet access, set this value to
         <tt>true</tt>.
-      </dd>
-      <dt>
-        TRAVIS_DEBIAN_AUTOPKGTEST
-      </dt>
-      <dd>
-        When <tt>true</tt>, run <tt>autopkgtest</tt> tests after a successful
-        build. By default, tests are attempted if a
-        <tt>debian/tests/control</tt> file exists or <tt>debian/control</tt>
-        has the <tt>Testsuite: autopkgtest</tt> header.
-      </dd>
-      <dt>
-        TRAVIS_DEBIAN_INCREMENT_VERSION_NUMBER
-      </dt>
-      <dd>
-        When <tt>true</tt>, increment the version number of the package by
-        appending a new entry to <tt>debian/changelog</tt> to reflect the
-        Travis CI build number. By default, the package version is left
-        unchanged.
       </dd>
     </dl>
 
@@ -247,17 +216,14 @@ $ git commit -m "Add .travis.yml from http://travis.debian.net."</pre>
 
     <ul>
       <li>
-        <a href="https://github.com/lamby/travis.debian.net">Source</a>
+        <a href="https://github.com/bzed/build-in-debian.bzed.at">Source</a>
         &bull;
-        <a href="https://github.com/lamby/travis.debian.net/issues">Issues</a>
+        <a href="https://github.com/bzed/build-in-debian.bzed.at/issues">Issues</a>
         &bull;
-        <a href="https://github.com/lamby/travis.debian.net/pulls">Pull requests</a>
+        <a href="https://github.com/bzed/build-in-debian.bzed.at/pulls">Pull requests</a>
       </li>
       <li>
         <a href="https://travis-ci.org">Travis CI</a>
-      </li>
-      <li>
-        <a href="https://honk.sigxcpu.org/piki/projects/git-buildpackage/">git-buildpackage</a>
       </li>
     </ul>
 
@@ -265,6 +231,11 @@ $ git commit -m "Add .travis.yml from http://travis.debian.net."</pre>
       Copyright
     </h3>
 
+    <p>
+      Copyright &copy; 2017
+      <a href="https://bzed.de/">Bernd Zeimetz</a>
+      &lt;<a href="mailto:bernd@bzed.de" class="user-mention">bernd@bzed.de</a>&gt;
+    </p>
     <p>
       Copyright &copy; 2015, 2016
       <a href="https://chris-lamb.co.uk/">Chris Lamb</a>

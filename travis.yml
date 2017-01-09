@@ -5,8 +5,4 @@ services:
   - docker
 
 script:
-  - wget -O- http://travis.debian.net/script.sh | sh -
-
-branches:
-  except:
-    - /^debian\/\d/
+  - wget -O- http://build-in-debian.bzed.at/script.sh | sh -

@@ -1,17 +1,22 @@
 #!/bin/sh
 
-#  _                   _          _      _     _                          _
+# |_     o  |  _|--- o __ --- _| _ |_  o  _ __    |_  _  _  _|    _ _|_
+# |_)|_| |  | (_|    | | |   (_|(/_|_) | (_|| | o |_) /_(/_(_| o (_| |_
+#
+#    based on the code of
+#_                   _          _      _     _                          _
 # | |_ _ __ __ ___   _(_)___   __| | ___| |__ (_) __ _ _ __    _ __   ___| |_
 # | __| '__/ _` \ \ / / / __| / _` |/ _ \ '_ \| |/ _` | '_ \  | '_ \ / _ \ __|
 # | |_| | | (_| |\ V /| \__ \| (_| |  __/ |_) | | (_| | | | |_| | | |  __/ |_
 #  \__|_|  \__,_| \_/ |_|___(_)__,_|\___|_.__/|_|\__,_|_| |_(_)_| |_|\___|\__|
 #
 #
-#               Documentation: <http://travis.debian.net>
+#               Documentation: <http://build-in-debian.bzed.at>
 
 
 ## Copyright ##################################################################
 #
+# Copyright © 2017 Bernd Zeimetz <bernd@bzed.de>
 # Copyright © 2015, 2016 Chris Lamb <lamby@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -41,16 +46,13 @@ Error () {
 
 ## Configuration ##############################################################
 
-SOURCE="$(dpkg-parsechangelog | awk '/^Source:/ { print $2 }')"
-VERSION="$(dpkg-parsechangelog | awk '/^Version:/ { print $2 }')"
+SOURCE="${TRAVIS_REPO_SLUG}"
 
-Info "Starting build of ${SOURCE} using travis.debian.net"
+Info "Starting build of ${SOURCE} using build-in-debian.bzed.at"
 
 TRAVIS_DEBIAN_MIRROR="${TRAVIS_DEBIAN_MIRROR:-http://ftp.de.debian.org/debian}"
 TRAVIS_DEBIAN_BUILD_DIR="${TRAVIS_DEBIAN_BUILD_DIR:-/build}"
-TRAVIS_DEBIAN_TARGET_DIR="${TRAVIS_DEBIAN_TARGET_DIR:-../}"
 TRAVIS_DEBIAN_NETWORK_ENABLED="${TRAVIS_DEBIAN_NETWORK_ENABLED:-false}"
-TRAVIS_DEBIAN_INCREMENT_VERSION_NUMBER="${TRAVIS_DEBIAN_INCREMENT_VERSION_NUMBER:-false}"
 
 #### Distribution #############################################################
 
@@ -104,28 +106,6 @@ case "${TRAVIS_DEBIAN_DISTRIBUTION}" in
 esac
 
 case "${TRAVIS_DEBIAN_DISTRIBUTION}" in
-	wheezy)
-		TRAVIS_DEBIAN_GIT_BUILDPACKAGE="${TRAVIS_DEBIAN_GIT_BUILDPACKAGE:-git-buildpackage}"
-		TRAVIS_DEBIAN_GIT_BUILDPACKAGE_OPTIONS="${TRAVIS_DEBIAN_GIT_BUILDPACKAGE_OPTIONS:-}"
-		;;
-	*)
-		TRAVIS_DEBIAN_GIT_BUILDPACKAGE="${TRAVIS_DEBIAN_GIT_BUILDPACKAGE:-gbp buildpackage}"
-		TRAVIS_DEBIAN_GIT_BUILDPACKAGE_OPTIONS="${TRAVIS_DEBIAN_GIT_BUILDPACKAGE_OPTIONS:---git-submodules}"
-		;;
-esac
-
-case "${TRAVIS_DEBIAN_DISTRIBUTION}" in
-	wheezy|jessie)
-		TRAVIS_DEBIAN_AUTOPKGTEST_RUN="${TRAVIS_DEBIAN_AUTOPKGTEST_RUN:-adt-run}"
-		TRAVIS_DEBIAN_AUTOPKGTEST_SEPARATOR="${TRAVIS_DEBIAN_AUTOPKGTEST_SEPARATOR:----}"
-		;;
-	*)
-		TRAVIS_DEBIAN_AUTOPKGTEST_RUN="${TRAVIS_DEBIAN_AUTOPKGTEST_RUN:-autopkgtest}"
-		TRAVIS_DEBIAN_AUTOPKGTEST_SEPARATOR="${TRAVIS_DEBIAN_AUTOPKGTEST_SEPARATOR:---}"
-		;;
-esac
-
-case "${TRAVIS_DEBIAN_DISTRIBUTION}" in
 	sid)
 		TRAVIS_DEBIAN_SECURITY_UPDATES="${TRAVIS_DEBIAN_SECURITY_UPDATES:-false}"
 		;;
@@ -134,14 +114,6 @@ case "${TRAVIS_DEBIAN_DISTRIBUTION}" in
 		;;
 esac
 
-## Detect autopkgtest tests ###################################################
-
-if [ -e "debian/tests/control" ] || grep -E '^(XS-)?Testsuite: autopkgtest' debian/control
-then
-	TRAVIS_DEBIAN_AUTOPKGTEST="${TRAVIS_DEBIAN_AUTOPKGTEST:-true}"
-else
-	TRAVIS_DEBIAN_AUTOPKGTEST="${TRAVIS_DEBIAN_AUTOPKGTEST:-false}"
-fi
 
 ## Print configuration ########################################################
 
@@ -152,34 +124,9 @@ Info "Security updates enabled: ${TRAVIS_DEBIAN_SECURITY_UPDATES}"
 Info "Will use extra repository: ${TRAVIS_DEBIAN_EXTRA_REPOSITORY:-<not set>}"
 Info "Extra repository's key URL: ${TRAVIS_DEBIAN_EXTRA_REPOSITORY_GPG_URL:-<not set>}"
 Info "Will build under: ${TRAVIS_DEBIAN_BUILD_DIR}"
-Info "Will store results under: ${TRAVIS_DEBIAN_TARGET_DIR}"
 Info "Using mirror: ${TRAVIS_DEBIAN_MIRROR}"
 Info "Network enabled during build: ${TRAVIS_DEBIAN_NETWORK_ENABLED}"
-Info "Builder command: ${TRAVIS_DEBIAN_GIT_BUILDPACKAGE}"
-Info "Builder command options: ${TRAVIS_DEBIAN_GIT_BUILDPACKAGE_OPTIONS}"
-Info "Increment version number: ${TRAVIS_DEBIAN_INCREMENT_VERSION_NUMBER}"
-Info "Run autopkgtests after build: ${TRAVIS_DEBIAN_AUTOPKGTEST}"
-Info "DEB_BUILD_OPTIONS: ${DEB_BUILD_OPTIONS:-<not set>}"
 
-## Increment version number ###################################################
-
-if [ "${TRAVIS_DEBIAN_INCREMENT_VERSION_NUMBER}" = true ]
-then
-	cat >debian/changelog.new <<EOF
-${SOURCE} (${VERSION}+travis${TRAVIS_BUILD_NUMBER}) UNRELEASED; urgency=medium
-
-  * Automatic build.
-
- -- travis.debian.net <nobody@nobody>  $(date --utc -R)
-
-EOF
-	cat <debian/changelog >>debian/changelog.new
-	mv debian/changelog.new debian/changelog
-	git add debian/changelog
-	git commit -m "Incrementing version number."
-fi
-
-## Build ######################################################################
 
 cat >Dockerfile <<EOF
 FROM debian:${TRAVIS_DEBIAN_DISTRIBUTION}
@@ -260,7 +207,7 @@ EOF
 fi
 
 cat >>Dockerfile <<EOF
-RUN env DEBIAN_FRONTEND=noninteractive mk-build-deps --install --remove --tool 'apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' debian/control
+RUN env DEBIAN_FRONTEND=noninteractive apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes ${TRAVIS_DEBIAN_BUILD_DEPENDENCIES}
 
 RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
@@ -270,13 +217,13 @@ RUN git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
 RUN git fetch
 RUN for X in \$(git branch -r | grep -v HEAD); do git branch --track \$(echo "\${X}" | sed -e 's@.*/@@g') \${X} || true; done
 
-CMD ${TRAVIS_DEBIAN_GIT_BUILDPACKAGE} ${TRAVIS_DEBIAN_GIT_BUILDPACKAGE_OPTIONS} --git-ignore-branch --git-export-dir=${TRAVIS_DEBIAN_BUILD_DIR} --git-builder='debuild -i -I -uc -us -sa'
+CMD ${TRAVIS_DEBIAN_BUILD_COMMAND}
 EOF
 
 Info "Using Dockerfile:"
 sed -e 's@^@  @g' Dockerfile
 
-TAG="travis.debian.net/${SOURCE}"
+TAG="build-in-debian.bzed.at/${SOURCE}"
 
 Info "Building Docker image ${TAG}"
 docker build --tag=${TAG} .
@@ -295,37 +242,11 @@ fi
 Info "Running build"
 docker run --env=DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS:-}" ${ARGS} ${TAG}
 
-Info "Copying build artefacts to ${TRAVIS_DEBIAN_TARGET_DIR}"
-mkdir -p "${TRAVIS_DEBIAN_TARGET_DIR}"
-docker cp "$(cat ${CIDFILE}):${TRAVIS_DEBIAN_BUILD_DIR}"/ - \
-	| tar xf - -C "${TRAVIS_DEBIAN_TARGET_DIR}" --strip-components=1
-
-if [ "${TRAVIS_DEBIAN_AUTOPKGTEST}" = "true" ]
-then
-	docker run --volume "$(readlink -f "${TRAVIS_DEBIAN_TARGET_DIR}"):${TRAVIS_DEBIAN_BUILD_DIR}" --interactive ${TAG} /bin/sh - <<EOF
-set -eu
-
-cat <<EOS >/usr/sbin/policy-rc.d
-#!/bin/sh
-exit 0
-EOS
-chmod a+x /usr/sbin/policy-rc.d
-apt-get install --yes --no-install-recommends autopkgtest autodep8
-
-${TRAVIS_DEBIAN_AUTOPKGTEST_RUN} ${TRAVIS_DEBIAN_BUILD_DIR}/*.changes ${TRAVIS_DEBIAN_AUTOPKGTEST_SEPARATOR} null
-EOF
-fi
-
 Info "Removing container"
 docker rm "$(cat ${CIDFILE})" >/dev/null
 rm -f "${CIDFILE}"
 
-Info "Build successful"
-sed -e 's@^@  @g' "${TRAVIS_DEBIAN_TARGET_DIR}"/*.changes
+                                                                     
+# |_     o  |  _|--- o __ --- _| _ |_  o  _ __    |_  _  _  _|    _ _|_
+# |_)|_| |  | (_|    | | |   (_|(/_|_) | (_|| | o |_) /_(/_(_| o (_| |_
 
-#  _                   _          _      _     _                          _
-# | |_ _ __ __ ___   _(_)___   __| | ___| |__ (_) __ _ _ __    _ __   ___| |_
-# | __| '__/ _` \ \ / / / __| / _` |/ _ \ '_ \| |/ _` | '_ \  | '_ \ / _ \ __|
-# | |_| | | (_| |\ V /| \__ \| (_| |  __/ |_) | | (_| | | | |_| | | |  __/ |_
-#  \__|_|  \__,_| \_/ |_|___(_)__,_|\___|_.__/|_|\__,_|_| |_(_)_| |_|\___|\__|
-#
