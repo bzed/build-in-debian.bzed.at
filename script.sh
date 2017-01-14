@@ -54,6 +54,19 @@ TRAVIS_DEBIAN_MIRROR="${TRAVIS_DEBIAN_MIRROR:-http://ftp.de.debian.org/debian}"
 TRAVIS_DEBIAN_BUILD_DIR="${TRAVIS_DEBIAN_BUILD_DIR:-/build}"
 TRAVIS_DEBIAN_NETWORK_ENABLED="${TRAVIS_DEBIAN_NETWORK_ENABLED:-false}"
 
+#### Dependencies and Build command ###########################################
+if [ "${TRAVIS_DEBIAN_BUILD_DEPENDENCIES:-}" = "" ]
+then
+	Info "Automatically using build-essential as the only build dependency"
+        TRAVIS_DEBIAN_BUILD_DEPENDENCIES="build-essential"
+fi
+if [ "${TRAVIS_DEBIAN_BUILD_COMMAND:-}" = "" ]
+then
+	Info "Automatically using 'make' as build command"
+        TRAVIS_DEBIAN_BUILD_COMMAND="make"
+fi
+
+
 #### Distribution #############################################################
 
 TRAVIS_DEBIAN_BACKPORTS="${TRAVIS_DEBIAN_BACKPORTS:-false}"
@@ -61,28 +74,15 @@ TRAVIS_DEBIAN_EXPERIMENTAL="${TRAVIS_DEBIAN_EXPERIMENTAL:-false}"
 
 if [ "${TRAVIS_DEBIAN_DISTRIBUTION:-}" = "" ]
 then
-	Info "Automatically detecting distribution"
+	Info "Using sid as Debian distribution"
 
-	TRAVIS_DEBIAN_DISTRIBUTION="${TRAVIS_BRANCH:-}"
+	TRAVIS_DEBIAN_DISTRIBUTION="sid"
+fi
+if [ "${TRAVIS_DEBIAN_DISTRIBUTION:-}" = "" ]
+then
+	Info "Using sid as Debian distribution"
 
-	if [ "${TRAVIS_DEBIAN_DISTRIBUTION:-}" = "" ]
-	then
-		TRAVIS_DEBIAN_DISTRIBUTION="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo master)"
-	fi
-
-	TRAVIS_DEBIAN_DISTRIBUTION="${TRAVIS_DEBIAN_DISTRIBUTION##debian/}"
-
-	# Detect backports
-	case "${TRAVIS_DEBIAN_DISTRIBUTION}" in
-		*-backports)
-			TRAVIS_DEBIAN_BACKPORTS="true"
-			TRAVIS_DEBIAN_DISTRIBUTION="${TRAVIS_DEBIAN_DISTRIBUTION%%-backports}"
-			;;
-		backports/*)
-			TRAVIS_DEBIAN_BACKPORTS="true"
-			TRAVIS_DEBIAN_DISTRIBUTION="${TRAVIS_DEBIAN_DISTRIBUTION##backports/}"
-			;;
-	esac
+	TRAVIS_DEBIAN_DISTRIBUTION="sid"
 fi
 
 # Detect codenames
@@ -126,6 +126,8 @@ Info "Extra repository's key URL: ${TRAVIS_DEBIAN_EXTRA_REPOSITORY_GPG_URL:-<not
 Info "Will build under: ${TRAVIS_DEBIAN_BUILD_DIR}"
 Info "Using mirror: ${TRAVIS_DEBIAN_MIRROR}"
 Info "Network enabled during build: ${TRAVIS_DEBIAN_NETWORK_ENABLED}"
+Info "Build Dependencies: ${TRAVIS_DEBIAN_BUILD_DEPENDENCIES}"
+Info "Build Command: ${TRAVIS_DEBIAN_BUILD_COMMAND}"
 
 
 cat >Dockerfile <<EOF
@@ -173,7 +175,7 @@ fi
 
 cat >>Dockerfile <<EOF
 RUN apt-get update && apt-get dist-upgrade --yes
-RUN apt-get install --yes --no-install-recommends build-essential equivs devscripts git-buildpackage ca-certificates pristine-tar lintian ${EXTRA_PACKAGES}
+RUN apt-get install --yes --no-install-recommends ${EXTRA_PACKAGES}
 
 WORKDIR $(pwd)
 COPY . .
