@@ -209,7 +209,7 @@ EOF
 fi
 
 cat >>Dockerfile <<EOF
-RUN env DEBIAN_FRONTEND=noninteractive apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes ${TRAVIS_DEBIAN_BUILD_DEPENDENCIES}
+RUN env DEBIAN_FRONTEND=noninteractive apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes install ${TRAVIS_DEBIAN_BUILD_DEPENDENCIES}
 
 RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
