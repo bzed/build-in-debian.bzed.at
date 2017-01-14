@@ -160,7 +160,7 @@ RUN echo "deb-src ${TRAVIS_DEBIAN_MIRROR} experimental main" >> /etc/apt/sources
 EOF
 fi
 
-EXTRA_PACKAGES="git"
+EXTRA_PACKAGES="git ca-certificates"
 
 case "${TRAVIS_DEBIAN_EXTRA_REPOSITORY:-}" in
 	https:*)
