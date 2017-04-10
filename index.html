@@ -191,6 +191,15 @@ $ git commit -m "Add .travis.yml from http://build-in-debian.bzed.at."</pre>
         If your build really needs internet access, set this value to
         <tt>true</tt>.
       </dd>
+      <dt>
+        TRAVIS_DEBIAN_BUILD_ENVIRONMENT
+      </dt>
+      <dd>
+        Extra environment for the build process within the docker container.
+        For example use
+        <tt>CC=clang</tt>.
+      </dd>
+
     </dl>
 
     <h3 id="faq">

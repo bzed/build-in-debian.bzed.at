@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # |_     o  |  _|--- o __ --- _| _ |_  o  _ __    |_  _  _  _|    _ _|_
 # |_)|_| |  | (_|    | | |   (_|(/_|_) | (_|| | o |_) /_(/_(_| o (_| |_
@@ -66,7 +66,19 @@ then
         TRAVIS_DEBIAN_BUILD_COMMAND="make"
 fi
 
-
+#### Build Environment
+if [ "${TRAVIS_DEBIAN_BUILD_ENVIRONMENT:-}" = "" ]
+then
+	parse_build_env() = {
+		for i in $@; do
+			Info "Build-Environment: ${i}"
+			echo -n "-e ${i} "
+		done
+	}
+	DOCKER_ENV=`parse_build_env "${TRAVIS_DEBIAN_BUILD_ENVIRONMENT}"`
+else
+	DOCKER_ENV=" "
+fi
 #### Distribution #############################################################
 
 TRAVIS_DEBIAN_BACKPORTS="${TRAVIS_DEBIAN_BACKPORTS:-false}"
@@ -175,7 +187,7 @@ fi
 
 cat >>Dockerfile <<EOF
 RUN apt-get update && apt-get dist-upgrade --yes
-RUN apt-get install --yes --no-install-recommends ${EXTRA_PACKAGES}
+RUN apt-get install -o Debug::pkgProblemResolver=yes --yes --no-install-recommends ${EXTRA_PACKAGES}
 
 WORKDIR $(pwd)
 COPY . .
@@ -242,7 +254,7 @@ then
 fi
 
 Info "Running build"
-docker run --env=DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS:-}" ${ARGS} ${TAG}
+docker run ${DOCKER_ENV} ${ARGS} ${TAG}
 
 Info "Removing container"
 docker rm "$(cat ${CIDFILE})" >/dev/null
