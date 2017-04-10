@@ -67,9 +67,9 @@ then
 fi
 
 #### Build Environment
-if [ "${TRAVIS_DEBIAN_BUILD_ENVIRONMENT:-}" = "" ]
+if [ -n "${TRAVIS_DEBIAN_BUILD_ENVIRONMENT:-}" ]
 then
-	parse_build_env() = {
+	parse_build_env() {
 		for i in $@; do
 			Info "Build-Environment: ${i}"
 			echo -n "-e ${i} "
